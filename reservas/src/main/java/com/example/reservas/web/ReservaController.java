@@ -3,6 +3,7 @@ package com.example.reservas.web;
 import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,29 +33,30 @@ public class ReservaController {
 
     // ✅ Listar reservas según rol
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN','USUARIO')")
-    public List<Reserva> listarReservas(HttpServletRequest request) {
-        String rol = (String) request.getAttribute("rol");
-        String email = (String) request.getAttribute("email");
+ @PreAuthorize("hasAnyAuthority('ADMIN', 'USUARIO')")
+ public List<Reserva> listarReservas(Authentication auth) {
+    String rol = auth.getAuthorities().iterator().next().getAuthority();
+    String email = auth.getName();
 
-        if ("ADMIN".equals(rol)) {
-            return repo.findAll();
-        } else {
-            return repo.findByPersonaEmail(email);
-        }
+    if ("ADMIN".equals(rol)) {
+        return repo.findAll();
+    } else {
+        return repo.findByPersonaEmail(email);
     }
+}
 
     // ✅ Crear reserva (solo USUARIO)
-    @PostMapping
-    @PreAuthorize("hasAuthority('USUARIO')")
-    public Reserva crear(@RequestBody Reserva reserva) {
-        csvExportService.generarCSVAsync(); // Exporta el CSV en segundo plano
-        return repo.save(reserva);
-    }
+   @PostMapping
+ @PreAuthorize("hasAuthority('USUARIO')")
+ public Reserva crear(@RequestBody Reserva reserva, Authentication auth) {
+   // reserva.setPersona(repo.findByEmail(auth.getName()).get());
+    csvExportService.generarCSVAsync();
+    return repo.save(reserva);
+}
 
     // ✅ Obtener una reserva (ADMIN cualquiera / USUARIO la suya)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN','USUARIO')")
+   @PreAuthorize("hasAnyAuthority('ADMIN', 'USUARIO')")
      public Reserva obtener(@PathVariable Long id, HttpServletRequest request) {
         String rol = (String) request.getAttribute("rol");
         String email = (String) request.getAttribute("email");
@@ -70,7 +72,7 @@ public class ReservaController {
 
     // ✅ Modificar una reserva (ADMIN cualquiera / USUARIO la suya)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN','USUARIO')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USUARIO')")
     public Reserva actualizar(@PathVariable Long id, @RequestBody Reserva datos, HttpServletRequest request) {
         String rol = (String) request.getAttribute("rol");
         String email = (String) request.getAttribute("email");
@@ -92,8 +94,8 @@ public class ReservaController {
     
     // ✅ Eliminar reserva (ADMIN cualquiera / USUARIO la suya)
     @DeleteMapping("/{id}")
-     @PreAuthorize("hasAnyAuthority('ADMIN','USUARIO')")
-    public void eliminar(@PathVariable Long id, HttpServletRequest request) {
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USUARIO')")
+     public void eliminar(@PathVariable Long id, HttpServletRequest request) {
         String rol = (String) request.getAttribute("rol");
         String email = (String) request.getAttribute("email");
 

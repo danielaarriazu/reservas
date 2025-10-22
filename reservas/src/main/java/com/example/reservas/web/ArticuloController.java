@@ -2,6 +2,7 @@ package com.example.reservas.web;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,27 +25,32 @@ public class ArticuloController {
     }
 
     @GetMapping
+     @PreAuthorize("hasAuthority('ADMIN')")
     public List<Articulo> listar() {
         return repo.findAll();
     }
 
     @PostMapping
+     @PreAuthorize("hasAuthority('ADMIN')")
     public Articulo crear(@RequestBody Articulo articulo) {
         return repo.save(articulo);
     }
 
     @GetMapping("/{id}")
+     @PreAuthorize("hasAuthority('ADMIN')")
     public Articulo obtener(@PathVariable Long id) {
         return repo.findById(id).orElseThrow();
     }
 
     @PutMapping("/{id}")
+     @PreAuthorize("hasAuthority('ADMIN')")
     public Articulo actualizar(@PathVariable Long id, @RequestBody Articulo articulo) {
         articulo.setId(id);
         return repo.save(articulo);
     }
 
     @DeleteMapping("/{id}")
+     @PreAuthorize("hasAuthority('ADMIN')")
     public void eliminar(@PathVariable Long id) {
         repo.deleteById(id);
     }

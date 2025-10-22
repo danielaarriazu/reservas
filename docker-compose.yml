@@ -1,0 +1,12 @@
+services:
+  python-api:
+    build: ./prediccion_api        # ruta al Dockerfile de FastAPI
+    container_name: python-api
+    ports:
+      - "8000:8000"
+
+  java-api:
+    build: ./reservas          # ruta al Dockerfile de Spring Boot
+    container_name: java-api
+    ports:
+      - "8080:8080"
