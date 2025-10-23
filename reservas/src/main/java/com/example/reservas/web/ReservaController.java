@@ -1,7 +1,7 @@
-//GPT
 package com.example.reservas.web;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,17 +14,23 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.example.reservas.model.Persona;
 import com.example.reservas.model.Reserva;
 import com.example.reservas.model.Rol;
+import com.example.reservas.model.ReservaDTO;
 import com.example.reservas.repository.ArticuloRepository;
 import com.example.reservas.repository.PersonaRepository;
 import com.example.reservas.repository.SalaRepository;
+import com.example.reservas.repository.ReservaRepository;
 import com.example.reservas.service.ReservaService;
+
 
 @RestController
 @RequestMapping("/reservas")
+@CrossOrigin(origins = "*") // permite peticiones desde cualquier dominio (útil para Python)
 public class ReservaController {
 
     @Autowired
@@ -38,6 +44,34 @@ public class ReservaController {
 
     @Autowired
     private ArticuloRepository articuloRepository;
+
+    @Autowired
+    private ReservaRepository reservaRepository;
+    
+    // 🔹 Obtener todas las reservas para la api de python(GET)
+    @GetMapping("/datos")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public List<ReservaDTO> getAllReservas() {
+        return reservaRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+// 🔹 Conversión Entidad → DTO plano
+    private ReservaDTO convertToDTO(Reserva reserva) {
+        return new ReservaDTO(
+                reserva.getId(),
+                reserva.getPersona() != null ? reserva.getPersona().getId() : null,
+                reserva.getPersona() != null ? reserva.getPersona().getNombre() : null,
+                reserva.getSala() != null ? reserva.getSala().getId() : null,
+                reserva.getSala() != null ? reserva.getSala().getNombre() : null,
+                reserva.getArticulo() != null ? reserva.getArticulo().getId() : null,
+                reserva.getArticulo() != null ? reserva.getArticulo().getNombre() : null,
+                reserva.getFechaHoraInicio(),
+                reserva.getFechaHoraFin()
+        );
+    }
 
     // 🔹 Listar reservas
     @GetMapping
