@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.reservas.model.Persona;
 import com.example.reservas.model.Reserva;
+import com.example.reservas.model.Sala;
 
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
@@ -20,4 +22,11 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("end") LocalDateTime end
     );
     List<Reserva> findByPersonaEmail(String email);
+    // agregado gpt
+    List<Reserva> findByPersona(Persona persona);
+   List<Reserva> findBySalaAndFechaHoraInicioLessThanEqualAndFechaHoraFinGreaterThanEqual(
+            Sala sala,
+            LocalDateTime fechaHoraFin,
+            LocalDateTime fechaHoraInicio
+    );
 }

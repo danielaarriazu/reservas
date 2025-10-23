@@ -29,4 +29,13 @@ public class Articulo {
 
     public boolean isDisponible() { return disponible; }
     public void setDisponible(boolean disponible) { this.disponible = disponible; }
+
+    @Override
+    public String toString() {
+        return "Articulo{" +
+                "id=" + id +
+                ", nombre='" + nombre + '\'' +                
+                ", disponible=" + disponible +
+                '}';
+    }
 }
