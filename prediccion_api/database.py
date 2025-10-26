@@ -1,18 +1,41 @@
 # database.py
 import pandas as pd
-from pathlib import Path
+import requests
 
-CSV_PATH = Path("../reservas/data/reservas.csv")
+def cargar_reservas(url="http://localhost:8080/reservas/datos", timeout=10):
+    """
+    Descarga los datos desde el endpoint Java y los devuelve como DataFrame.
+    Asegúrate que el backend de Spring Boot esté corriendo antes de ejecutar.
+    """
+    try:
+        response = requests.get(url, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
 
-def cargar_reservas():
-    """Carga las reservas desde el archivo CSV."""
-    if not CSV_PATH.exists():
-        raise FileNotFoundError(f"No se encontró el archivo {CSV_PATH.resolve()}")
-    
-    df = pd.read_csv(CSV_PATH)
-    # Convertimos fechas
-    df['fecha_hora_inicio'] = pd.to_datetime(df['fecha_hora_inicio'])
-    df['fecha_hora_fin'] = pd.to_datetime(df['fecha_hora_fin'])
-    df["duracion_horas"] = (df["fecha_hora_fin"] - df["fecha_hora_inicio"]).dt.total_seconds() / 3600.0
-    df["fecha"] = df["fecha_hora_inicio"].dt.date
-    return df
+        df = pd.DataFrame.from_records(data)
+
+        # columnas esperadas por predictor.py
+        expected = [ "salaId", "salaNombre", "salaCapacidad", "articuloId", "articuloNombre", "fecha", "duracion_horas"]
+        for col in expected:
+            if col not in df.columns:
+                df[col] = None
+
+        # convertir tipos
+        df["salaId"] = pd.to_numeric(df["salaId"], errors="coerce").astype("Int64")
+        df["salaCapacidad"] = pd.to_numeric(df["salaCapacidad"], errors="coerce").astype("Int64")
+        df["articuloId"] = pd.to_numeric(df["articuloId"], errors="coerce").astype("Int64")
+        df["duracion_horas"] = pd.to_numeric(df["duracion_horas"], errors="coerce").fillna(0.0)
+        df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce").dt.date.astype("object")
+        
+         # Limpiar strings
+        for col in ["salaNombre", "articuloNombre"]:
+            df[col] = df[col].astype(str).replace("None", "")
+
+        print(f"✅ Datos cargados correctamente ({len(df)} registros)")
+        return df
+
+    except requests.RequestException as e:
+        print(f"⚠️ Error al obtener datos desde {url}: {e}")
+        return pd.DataFrame(columns=["salaId", "salaNombre", "salaCapacidad",
+            "articuloId", "articuloNombre",
+            "fecha", "duracion_horas"])

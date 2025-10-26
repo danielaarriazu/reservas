@@ -1,38 +1,56 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-import joblib
-from database import cargar_reservas
-from models import build_duracion_model, build_demanda_model
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
-def train_models():
-    df = cargar_reservas()
+# -----------------------------
+# 1️⃣ Predicción de demanda por sala
+# -----------------------------
+def predecir_demanda_salas(df):
+    if df.empty:
+        return {"error": "No hay datos de reservas"}
 
-    # ---- Modelo de duración ----
-    X_duracion = df[["persona_id", "sala_id", "articulo_id"]]
-    y_duracion = df["duracion_horas"]
-    duracion_model = build_duracion_model()
-    duracion_model.fit(X_duracion, y_duracion)
-    joblib.dump(duracion_model, "models/duracion_model.pkl")
+    # Agrupar por sala
+    resumen = df.groupby(["salaId", "salaNombre", "salaCapacidad"]).agg({
+        "duracion_horas": "mean",
+        "fecha": "count"
+    }).rename(columns={
+        "fecha": "cantidad_reservas",
+        "duracion_horas": "duracion_promedio"
+    }).reset_index()
 
-    # ---- Modelo de demanda ----
-    demanda_df = df.groupby(["fecha", "sala_id"]).size().reset_index(name="cantidad_reservas")
-    X_demanda = demanda_df[["fecha", "sala_id"]]
-    X_demanda["fecha"] = pd.to_datetime(X_demanda["fecha"]).map(pd.Timestamp.toordinal)
-    y_demanda = demanda_df["cantidad_reservas"]
+    # Modelo lineal simulado (crecimiento simple)
+    X = np.arange(len(resumen)).reshape(-1, 1)
+    y = resumen["cantidad_reservas"].values
+    model = LinearRegression().fit(X, y)
+    prediccion = model.predict(X + 1)
 
-    demanda_model = build_demanda_model()
-    demanda_model.fit(X_demanda, y_demanda)
-    joblib.dump(demanda_model, "models/demanda_model.pkl")
+    resumen["prediccion_futura"] = np.maximum(prediccion, 0).round(2)
+    resumen["variacion_%"] = ((resumen["prediccion_futura"] - resumen["cantidad_reservas"]) /
+                              resumen["cantidad_reservas"] * 100).round(1)
 
-    print("✅ Modelos entrenados y guardados correctamente.")
+    return resumen.sort_values("prediccion_futura", ascending=False)
 
-def predict_duracion(persona_id, sala_id, articulo_id):
-    model = joblib.load("models/duracion_model.pkl")
-    X_new = pd.DataFrame([[persona_id, sala_id, articulo_id]], columns=["persona_id", "sala_id", "articulo_id"])
-    return float(model.predict(X_new)[0])
 
-def predict_demanda(fecha, sala_id):
-    model = joblib.load("models/demanda_model.pkl")
-    X_new = pd.DataFrame([[pd.Timestamp(fecha).toordinal(), sala_id]], columns=["fecha", "sala_id"])
-    return float(model.predict(X_new)[0])
+# -----------------------------
+# 2️⃣ Predicción de mantenimiento/reposición por artículo
+# -----------------------------
+def predecir_mantenimiento_articulos(df):
+    if df.empty:
+        return {"error": "No hay datos de reservas"}
+
+    resumen = df.groupby(["articuloId", "articuloNombre"]).agg({
+        "duracion_horas": "mean",
+        "fecha": "count"
+    }).rename(columns={
+        "fecha": "veces_usado",
+        "duracion_horas": "duracion_promedio"
+    }).reset_index()
+
+    promedio_uso = resumen["veces_usado"].mean()
+    resumen["riesgo_mantenimiento"] = np.where(
+        resumen["veces_usado"] > promedio_uso, "ALTO", "NORMAL"
+    )
+
+    return resumen.sort_values("veces_usado", ascending=False)
+

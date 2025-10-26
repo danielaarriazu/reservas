@@ -33,6 +33,10 @@ public class JwtFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+        if (path.startsWith("/reservas/datos") && request.getMethod().equals("GET")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         final String header = request.getHeader("Authorization");
         String jwt = null;

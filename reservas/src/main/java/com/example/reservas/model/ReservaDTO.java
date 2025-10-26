@@ -15,10 +15,11 @@ public class ReservaDTO {
 
     private Long salaId;
     private String salaNombre;
+    private int salaCapacidad;
 
     private Long articuloId;
     private String articuloNombre;
-
+   
     private LocalDateTime fechaHoraInicio;
     private LocalDateTime fechaHoraFin;
 
@@ -26,7 +27,7 @@ public class ReservaDTO {
 
     public ReservaDTO(Long id,
                       Long personaId, String personaNombre,
-                      Long salaId, String salaNombre,
+                      Long salaId, String salaNombre, int salaCapacidad,
                       Long articuloId, String articuloNombre,
                       LocalDateTime fechaHoraInicio, LocalDateTime fechaHoraFin) {
         this.id = id;
@@ -34,6 +35,7 @@ public class ReservaDTO {
         this.personaNombre = personaNombre;
         this.salaId = salaId;
         this.salaNombre = salaNombre;
+        this.salaCapacidad= salaCapacidad;
         this.articuloId = articuloId;
         this.articuloNombre = articuloNombre;
         this.fechaHoraInicio = fechaHoraInicio;
@@ -55,6 +57,9 @@ public class ReservaDTO {
 
     public String getSalaNombre() { return salaNombre; }
     public void setSalaNombre(String salaNombre) { this.salaNombre = salaNombre; }
+
+    public int getSalaCapacidad() { return salaCapacidad; }
+    public void setSalaCapacidad(int salaCapacidad) { this.salaCapacidad= salaCapacidad; }
 
     public Long getArticuloId() { return articuloId; }
     public void setArticuloId(Long articuloId) { this.articuloId = articuloId; }
