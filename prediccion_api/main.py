@@ -1,22 +1,26 @@
 from fastapi import FastAPI
-from predictor import train_models, predict_duracion, predict_demanda
-from schemas import (
-    PrediccionDuracionRequest, PrediccionDuracionResponse,
-    PrediccionDemandaRequest, PrediccionDemandaResponse
-)
+import pandas as pd  # 🔹 <- Faltaba este import
+from database import cargar_reservas
+from predictor import predecir_demanda_salas, predecir_mantenimiento_articulos
 
-app = FastAPI(title="API de Predicciones de Reservas")
+app = FastAPI(title="API de Predicción de Reservas", version="1.0")
 
-@app.on_event("startup")
-def startup_event():
-    train_models()
+# -----------------------------
+# 📈 Predicción de demanda por Sala
+# -----------------------------
+@app.get("/prediccion/salas")
+def prediccion_salas():
+    df = cargar_reservas()
+    resultado = predecir_demanda_salas(df)
+    return resultado.to_dict(orient="records") if isinstance(resultado, pd.DataFrame) else resultado
 
-@app.post("/predict/duracion", response_model=PrediccionDuracionResponse)
-def prediccion_duracion(request: PrediccionDuracionRequest):
-    duracion = predict_duracion(request.persona_id, request.sala_id, request.articulo_id)
-    return PrediccionDuracionResponse(duracion_estimado_horas=duracion)
 
-@app.post("/predict/demanda", response_model=PrediccionDemandaResponse)
-def prediccion_demanda(request: PrediccionDemandaRequest):
-    demanda = predict_demanda(request.fecha, request.sala_id)
-    return PrediccionDemandaResponse(demanda_esperada=demanda)
+# -----------------------------
+# ⚙️ Predicción de mantenimiento/reposición de Artículos
+# -----------------------------
+@app.get("/prediccion/articulos")
+def prediccion_articulos():
+    df = cargar_reservas()
+    resultado = predecir_mantenimiento_articulos(df)
+    return resultado.to_dict(orient="records") if isinstance(resultado, pd.DataFrame) else resultado
+

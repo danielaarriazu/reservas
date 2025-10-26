@@ -1,12 +1,12 @@
 package com.example.reservas.security;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -21,38 +21,40 @@ public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UserDetailsService userDetailsService;
+
     @Override
-protected void doFilterInternal(HttpServletRequest request,
-                                HttpServletResponse response,
-                                FilterChain chain)
-        throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws ServletException, IOException {
 
-       String path = request.getServletPath();
+        String path = request.getServletPath();
+        if (path.startsWith("/auth") || path.startsWith("/h2-console")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        if (path.startsWith("/reservas/datos") && request.getMethod().equals("GET")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
-        // Rutas públicas: no requieren token
-       if (path.startsWith("/auth") || path.startsWith("/api/auth") || path.startsWith("/h2-console")) {
-        chain.doFilter(request, response);
-        return;
-    }
+        final String header = request.getHeader("Authorization");
+        String jwt = null;
+        String email = null;
 
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            try {
-                if (jwtUtil.validarToken(token)) {
-                    String email = jwtUtil.obtenerEmail(token);
-                    String rol = jwtUtil.obtenerRol(token);
+        if (header != null && header.startsWith("Bearer ")) {
+            jwt = header.substring(7);
+            email = jwtUtil.extractUsername(jwt);
+        }
 
-                    var auth = new UsernamePasswordAuthenticationToken(
-                            email,
-                            null,
-                            List.of(new SimpleGrantedAuthority(rol)) // usar exactamente como en hasAuthority
-                    );
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            var userDetails = userDetailsService.loadUserByUsername(email);
 
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                }
-            } catch (Exception e) {
-                // Token inválido, no hacemos nada, seguimos sin autenticación
+            if (jwtUtil.validateToken(jwt, userDetails)) {
+                var authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 

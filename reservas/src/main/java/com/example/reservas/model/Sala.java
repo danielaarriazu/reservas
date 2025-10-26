@@ -14,11 +14,13 @@ public class Sala {
 
     private String nombre;
     private int capacidad;
+    private boolean disponible = true;
 
     public Sala() {}
-    public Sala(String nombre, int capacidad) {
+     public Sala(String nombre, int capacidad, boolean disponible) {
         this.nombre = nombre;
         this.capacidad = capacidad;
+        this.disponible = disponible;
     }
 
     public Long getId() { return id; }
@@ -29,4 +31,21 @@ public class Sala {
 
     public int getCapacidad() { return capacidad; }
     public void setCapacidad(int capacidad) { this.capacidad = capacidad; }
+
+    public boolean isDisponible() {
+        return disponible;
+    }
+    public void setDisponible(boolean disponible) {
+        this.disponible = disponible;
+    }
+
+    @Override
+    public String toString() {
+        return "Sala{" +
+                "id=" + id +
+                ", nombre='" + nombre + '\'' +
+                ", capacidad=" + capacidad +
+                ", disponible=" + disponible +
+                '}';
+    }
 }

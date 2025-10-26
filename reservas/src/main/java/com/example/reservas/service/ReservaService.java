@@ -1,76 +1,117 @@
 package com.example.reservas.service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.example.reservas.model.Articulo;
+import com.example.reservas.model.Persona;
 import com.example.reservas.model.Reserva;
+import com.example.reservas.model.Sala;
+import com.example.reservas.repository.ArticuloRepository;
+import com.example.reservas.repository.PersonaRepository;
 import com.example.reservas.repository.ReservaRepository;
+import com.example.reservas.repository.SalaRepository;
 
 @Service
 public class ReservaService {
 
-    private final ReservaRepository reservaRepo;
+    @Autowired
+    private ReservaRepository reservaRepository;
+    
+    @Autowired
+    private SalaRepository salaRepository;
 
-    public ReservaService(ReservaRepository reservaRepo) {
-        this.reservaRepo = reservaRepo;
+    @Autowired
+    private ArticuloRepository articuloRepository;
+
+    @Autowired
+    private PersonaRepository personaRepository;
+
+    public List<Reserva> listarTodas() {
+        return reservaRepository.findAll();
     }
 
-    /**
-     * Crea una reserva validando que la sala no esté ocupada en ese rango de horario.
-     */
-    public Reserva crearReserva(Reserva nueva) {
-        LocalDateTime inicio = nueva.getFechaHoraInicio();
-        LocalDateTime fin = nueva.getFechaHoraFin();
-        Long salaId = nueva.getSala().getId();
+    public List<Reserva> listarPorUsuario(Persona persona) {
+        return reservaRepository.findByPersona(persona);
+    }
 
-        // 1️⃣ Buscar reservas que se solapen con el rango pedido
-        List<Reserva> solapadas = reservaRepo.findBySalaIdAndFechaHoraInicioBetween(
-                salaId,
-                inicio.minusMinutes(1), // margen de seguridad
-                fin.plusMinutes(1)
-        );
+     // 🔹 Crear reserva (valida disponibilidad y carga entidades completas)
+    public Reserva guardar(Reserva reserva, String emailUsuario) {
+        // Buscar entidades completas
+        Sala sala = salaRepository.findById(reserva.getSala().getId())
+                .orElseThrow(() -> new RuntimeException("Sala no encontrada"));
+        Articulo articulo = articuloRepository.findById(reserva.getArticulo().getId())
+                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+        Persona persona = personaRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 2️⃣ Validar si hay conflicto
-        boolean existeConflicto = solapadas.stream().anyMatch(r ->
-                r.getFechaHoraInicio().isBefore(fin) &&
-                r.getFechaHoraFin().isAfter(inicio)
-        );
+        reserva.setSala(sala);
+        reserva.setArticulo(articulo);
+        reserva.setPersona(persona);
 
-        if (existeConflicto) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "La sala ya está reservada en ese horario."
-            );
+        // Validar disponibilidad
+        if (!estaDisponible(reserva)) {
+            throw new RuntimeException("La sala no está disponible en ese horario");
         }
 
-        // 3️⃣ Guardar la reserva si está todo bien
-        return reservaRepo.save(nueva);
+        return reservaRepository.save(reserva);
     }
 
-    /**
-     * Devuelve todas las reservas.
-     */
-    public List<Reserva> listar() {
-        return reservaRepo.findAll();
+    public Reserva obtenerPorId(Long id) {
+        return reservaRepository.findById(id).orElse(null);
     }
 
-    /**
-     * Devuelve una reserva por ID.
-     */
-    public Reserva obtener(Long id) {
-        return reservaRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Reserva no encontrada"));
+     // 🔹 Modificar reserva (si pertenece al usuario o si es admin)
+    public Reserva modificar(Long id, Reserva actualizada, Persona persona, boolean esAdmin) {
+        Reserva existente = reservaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+
+        if (!esAdmin && !existente.getPersona().getId().equals(persona.getId())) {
+            throw new RuntimeException("No tienes permiso para modificar esta reserva");
+        }
+
+        // Reasignar entidades completas
+        Sala sala = salaRepository.findById(actualizada.getSala().getId())
+                .orElseThrow(() -> new RuntimeException("Sala no encontrada"));
+        Articulo articulo = articuloRepository.findById(actualizada.getArticulo().getId())
+                .orElseThrow(() -> new RuntimeException("Artículo no encontrado"));
+
+        existente.setSala(sala);
+        existente.setArticulo(articulo);
+        existente.setFechaHoraInicio(actualizada.getFechaHoraInicio());
+        existente.setFechaHoraFin(actualizada.getFechaHoraFin());
+
+        // Validar disponibilidad
+        if (!estaDisponible(existente)) {
+            throw new RuntimeException("La sala no está disponible en ese horario");
+        }
+
+        return reservaRepository.save(existente);
     }
 
-    /**
-     * Elimina una reserva.
-     */
-    public void eliminar(Long id) {
-        reservaRepo.deleteById(id);
+   // 🔹 Eliminar reserva (solo si pertenece al usuario o es admin)
+    public void eliminar(Long id, Persona persona, boolean esAdmin) {
+        Reserva reserva = reservaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+
+        if (!esAdmin && !reserva.getPersona().getId().equals(persona.getId())) {
+            throw new RuntimeException("No tienes permiso para eliminar esta reserva");
+        }
+
+        reservaRepository.deleteById(id);
+    }
+
+    // 🔹 Verifica si una sala está disponible en el horario solicitado
+    public boolean estaDisponible(Reserva reserva) {
+        List<Reserva> reservasOcupadas = reservaRepository.findBySalaAndFechaHoraInicioLessThanEqualAndFechaHoraFinGreaterThanEqual(
+                    reserva.getSala(),
+                    reserva.getFechaHoraInicio(),
+                    reserva.getFechaHoraFin());
+
+        // Si ya hay reservas para esa sala, fecha y hora (excluyendo la misma en caso de modificación)
+        return reservasOcupadas.stream()
+                .allMatch(r -> r.getId().equals(reserva.getId()));
     }
 }
-

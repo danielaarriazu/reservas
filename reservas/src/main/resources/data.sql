@@ -1,16 +1,18 @@
 -- ============================
--- INSERTAR PERSONAS
+-- INSERTAR PERSONAS Clave Admin: admin123   Clave USUARIO: user123 
 -- ============================
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (1, 'Administrador', 'admin@shipnet.com', 'admin123', 'ADMIN');
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (2, 'Daniela', 'dani@example.com', 'user123', 'USUARIO');
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (3, 'Lucia', 'lucia@example.com', 'user123', 'USUARIO');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (1, 'Administrador', 'admin@shipnet.com', '$2a$10$S1vAgQWqZ91jPmx4t08taeGeaMZ2j3C7onI/B2hVFWdyt6cBZGZg2', 'ADMIN');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (2, 'Daniela', 'dani@example.com', '$2a$10$5AGq1u5fltiyk8LMHRLx0OG8wXxJqV4zBoqfPBUL8zB1N4D6sb9c2
+', 'USUARIO');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (3, 'Lucia', 'lucia@example.com', '$2a$10$5AGq1u5fltiyk8LMHRLx0OG8wXxJqV4zBoqfPBUL8zB1N4D6sb9c2
+', 'USUARIO');
 
 
 -- ============================
 -- INSERTAR SALAS
 -- ============================
-INSERT INTO SALA (id, nombre, capacidad) VALUES (1, 'Sala A', 10);
-INSERT INTO SALA (id, nombre, capacidad) VALUES (2, 'Sala B', 20);
+INSERT INTO SALA (id, nombre, capacidad, disponible) VALUES (1, 'Sala A', 10, TRUE);
+INSERT INTO SALA (id, nombre, capacidad, disponible) VALUES (2, 'Sala B', 20, FALSE);
 
 -- ============================
 -- INSERTAR ARTICULOS
