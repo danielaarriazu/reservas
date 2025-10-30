@@ -1,11 +1,9 @@
 -- ============================
 -- INSERTAR PERSONAS Clave Admin: admin123   Clave USUARIO: user123 
 -- ============================
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (1, 'Administrador', 'admin@shipnet.com', '$2a$10$S1vAgQWqZ91jPmx4t08taeGeaMZ2j3C7onI/B2hVFWdyt6cBZGZg2', 'ADMIN');
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (2, 'Daniela', 'dani@example.com', '$2a$10$5AGq1u5fltiyk8LMHRLx0OG8wXxJqV4zBoqfPBUL8zB1N4D6sb9c2
-', 'USUARIO');
-INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (3, 'Lucia', 'lucia@example.com', '$2a$10$5AGq1u5fltiyk8LMHRLx0OG8wXxJqV4zBoqfPBUL8zB1N4D6sb9c2
-', 'USUARIO');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (1, 'Administrador', 'admin@shipnet.com', '$2a$12$65HRh/VXcTZKKfER40XaQe7hpN5NUbX/vTsgQMQatSIsURFAse/0m', 'ADMIN');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (2, 'Daniela', 'dani@example.com', '$2a$12$xTH6D/zXVfLRxEkE6oKai.dMTtMX3c9.o8aJVt/ARzKsoeeMKCPXa', 'USUARIO');
+INSERT INTO PERSONA (id, nombre, email, password, rol) VALUES (3, 'Lucia', 'lucia@example.com', '$2a$12$xTH6D/zXVfLRxEkE6oKai.dMTtMX3c9.o8aJVt/ARzKsoeeMKCPXa', 'USUARIO');
 
 
 -- ============================

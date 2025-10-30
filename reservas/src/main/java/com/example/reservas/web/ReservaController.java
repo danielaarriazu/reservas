@@ -54,7 +54,7 @@ public class ReservaController {
     "http://localhost:8080/reservas/datos",
     "http://127.0.0.1:8000",     // para la API Python local
     "http://localhost:8000",     // alternativa
-    "http://localhost:4200"      // tu frontend Angular (modo dev)
+    "http://localhost:5174"      // frontend React (modo dev)
 })
    @GetMapping("/datos")
     public ResponseEntity<List<Map<String, Object>>> getDatosReservas() {
