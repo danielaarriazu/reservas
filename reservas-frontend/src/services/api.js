@@ -6,8 +6,7 @@ const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  },
-  withCredentials: true   // 👈 habilita envío de cookies/CORS correctos
+  }
 });
 
 // Interceptor para añadir el token JWT automáticamente
