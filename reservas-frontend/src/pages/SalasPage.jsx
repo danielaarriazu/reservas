@@ -19,9 +19,11 @@ import {
   Alert,
   Chip,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Add, Edit, Delete, FilterList } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 
@@ -31,6 +33,7 @@ export const SalasPage = () => {
   const [editingSala, setEditingSala] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [filtro, setFiltro] = useState('todas'); // 'todas', 'disponibles', 'no_disponibles'
   const { isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -125,21 +128,50 @@ export const SalasPage = () => {
     }
   };
 
+  // ✅ Filtrar salas según el filtro seleccionado
+  const salasFiltradas = salas.filter(sala => {
+    if (filtro === 'disponibles') return sala.disponible;
+    if (filtro === 'no_disponibles') return !sala.disponible;
+    return true; // 'todas'
+  });
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <Typography variant="h4" fontWeight="bold">
           Salas
         </Typography>
-        {isAdmin() && (
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nueva Sala
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* ✅ Filtro de disponibilidad (solo para Admin) */}
+          {isAdmin() && (
+            <ToggleButtonGroup
+              value={filtro}
+              exclusive
+              onChange={(e, newFiltro) => newFiltro && setFiltro(newFiltro)}
+              size="small"
+            >
+              <ToggleButton value="todas">
+                Todas ({salas.length})
+              </ToggleButton>
+              <ToggleButton value="disponibles">
+                Disponibles ({salas.filter(s => s.disponible).length})
+              </ToggleButton>
+              <ToggleButton value="no_disponibles">
+                No Disponibles ({salas.filter(s => !s.disponible).length})
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
+          {isAdmin() && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+            >
+              Nueva Sala
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {error && (
@@ -160,14 +192,14 @@ export const SalasPage = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {salas.length === 0 ? (
+            {salasFiltradas.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center">
-                  No hay salas registradas
+                  No hay salas {filtro === 'todas' ? 'registradas' : filtro === 'disponibles' ? 'disponibles' : 'no disponibles'}
                 </TableCell>
               </TableRow>
             ) : (
-              salas.map((sala) => (
+              salasFiltradas.map((sala) => (
                 <TableRow key={sala.id} hover>
                   <TableCell>{sala.id}</TableCell>
                   <TableCell>{sala.nombre}</TableCell>
@@ -239,8 +271,14 @@ export const SalasPage = () => {
                   onChange={handleChange}
                 />
               }
-              label="Disponible"
+              label="Disponible para reservas"
             />
+
+            {!formData.disponible && (
+              <Alert severity="warning">
+                Esta sala NO estará disponible para nuevas reservas
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

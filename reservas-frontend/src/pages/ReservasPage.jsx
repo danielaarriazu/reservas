@@ -23,11 +23,13 @@ import {
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { reservaService } from '../services/reservaService';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 
 export const ReservasPage = () => {
   const [reservas, setReservas] = useState([]);
   const [salas, setSalas] = useState([]);
   const [articulos, setArticulos] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingReserva, setEditingReserva] = useState(null);
   const [error, setError] = useState('');
@@ -35,6 +37,7 @@ export const ReservasPage = () => {
   const { isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
+    persona: { id: '' },
     sala: { id: '' },
     articulo: { id: '' },
     fechaHoraInicio: '',
@@ -49,12 +52,20 @@ export const ReservasPage = () => {
     try {
       const [reservasRes, salasRes, articulosRes] = await Promise.all([
         reservaService.getAll(),
-        reservaService.getSalas(),
-        reservaService.getArticulos()
+        api.get('/salas'),
+        api.get('/articulos')
       ]);
       setReservas(reservasRes.data);
-      setSalas(salasRes.data);
-      setArticulos(articulosRes.data);
+      
+      // ✅ FILTRAR: Solo mostrar salas y artículos disponibles en el formulario
+      setSalas(salasRes.data.filter(s => s.disponible));
+      setArticulos(articulosRes.data.filter(a => a.disponible));
+
+      // 🔹 Si es admin, cargar usuarios
+      if (isAdmin()) {
+        const usuariosRes = await api.get('/personas');
+        setUsuarios(usuariosRes.data);
+      }
     } catch (error) {
       setError('Error al cargar los datos');
       console.error(error);
@@ -65,6 +76,7 @@ export const ReservasPage = () => {
     if (reserva) {
       setEditingReserva(reserva);
       setFormData({
+        persona: { id: reserva.persona?.id || '' },
         sala: { id: reserva.sala?.id || '' },
         articulo: { id: reserva.articulo?.id || '' },
         fechaHoraInicio: reserva.fechaHoraInicio?.slice(0, 16) || '',
@@ -73,6 +85,7 @@ export const ReservasPage = () => {
     } else {
       setEditingReserva(null);
       setFormData({
+        persona: { id: '' },
         sala: { id: '' },
         articulo: { id: '' },
         fechaHoraInicio: '',
@@ -90,7 +103,7 @@ export const ReservasPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'sala' || name === 'articulo') {
+    if (name === 'sala' || name === 'articulo' || name === 'persona') {
       setFormData(prev => ({
         ...prev,
         [name]: { id: value }
@@ -114,6 +127,11 @@ export const ReservasPage = () => {
         fechaHoraInicio: formData.fechaHoraInicio,
         fechaHoraFin: formData.fechaHoraFin
       };
+
+      // 🔹 NUEVO: Si es admin y seleccionó un usuario, incluirlo en el payload
+      if (isAdmin() && formData.persona.id) {
+        payload.persona = { id: parseInt(formData.persona.id) };
+      }
 
       if (editingReserva) {
         await reservaService.update(editingReserva.id, payload);
@@ -150,7 +168,7 @@ export const ReservasPage = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">
-          Mis Reservas
+          {isAdmin() ? 'Gestión de Reservas' : 'Mis Reservas'}
         </Typography>
         <Button
           variant="contained"
@@ -172,6 +190,7 @@ export const ReservasPage = () => {
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
               <TableCell><strong>ID</strong></TableCell>
+              {isAdmin() && <TableCell><strong>Usuario</strong></TableCell>}
               <TableCell><strong>Sala</strong></TableCell>
               <TableCell><strong>Artículo</strong></TableCell>
               <TableCell><strong>Fecha Inicio</strong></TableCell>
@@ -183,7 +202,7 @@ export const ReservasPage = () => {
           <TableBody>
             {reservas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={isAdmin() ? 8 : 7} align="center">
                   No hay reservas registradas
                 </TableCell>
               </TableRow>
@@ -191,6 +210,9 @@ export const ReservasPage = () => {
               reservas.map((reserva) => (
                 <TableRow key={reserva.id} hover>
                   <TableCell>{reserva.id}</TableCell>
+                  {isAdmin() && (
+                    <TableCell>{reserva.persona?.nombre || reserva.persona?.email || '-'}</TableCell>
+                  )}
                   <TableCell>{reserva.sala?.nombre || '-'}</TableCell>
                   <TableCell>{reserva.articulo?.nombre || '-'}</TableCell>
                   <TableCell>{formatDateTime(reserva.fechaHoraInicio)}</TableCell>
@@ -232,6 +254,26 @@ export const ReservasPage = () => {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            {/* 🔹 NUEVO: Campo Usuario (solo para Admin) */}
+            {isAdmin() && (
+              <TextField
+                select
+                label="Usuario (opcional - si no seleccionas, se asigna a ti)"
+                name="persona"
+                value={formData.persona.id}
+                onChange={handleChange}
+                fullWidth
+                helperText="Si no seleccionas usuario, la reserva se asignará a tu cuenta"
+              >
+                <MenuItem value="">-- Yo (Admin) --</MenuItem>
+                {usuarios.map((usuario) => (
+                  <MenuItem key={usuario.id} value={usuario.id}>
+                    {usuario.nombre} ({usuario.email})
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
             <TextField
               select
               label="Sala"
