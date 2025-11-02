@@ -184,7 +184,6 @@ export const SalasPage = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>ID</strong></TableCell>
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>Capacidad</strong></TableCell>
               <TableCell><strong>Estado</strong></TableCell>
@@ -201,7 +200,6 @@ export const SalasPage = () => {
             ) : (
               salasFiltradas.map((sala) => (
                 <TableRow key={sala.id} hover>
-                  <TableCell>{sala.id}</TableCell>
                   <TableCell>{sala.nombre}</TableCell>
                   <TableCell>{sala.capacidad} personas</TableCell>
                   <TableCell>

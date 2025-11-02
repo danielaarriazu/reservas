@@ -180,7 +180,7 @@ export const ArticulosPage = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>ID</strong></TableCell>
+            
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>Estado</strong></TableCell>
               {isAdmin() && <TableCell align="center"><strong>Acciones</strong></TableCell>}
@@ -196,7 +196,6 @@ export const ArticulosPage = () => {
             ) : (
               articulosFiltrados.map((articulo) => (
                 <TableRow key={articulo.id} hover>
-                  <TableCell>{articulo.id}</TableCell>
                   <TableCell>{articulo.nombre}</TableCell>
                   <TableCell>
                     <Chip

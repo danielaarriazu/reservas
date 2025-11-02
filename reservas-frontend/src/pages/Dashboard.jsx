@@ -1,14 +1,41 @@
+import { useEffect, useState } from 'react';
 import { Box, Grid, Paper, Typography, Card, CardContent } from '@mui/material';
 import { EventNote, MeetingRoom, Inventory, TrendingUp } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 
 export const Dashboard = () => {
   const { user, isAdmin } = useAuth();
+  const [reservasCount, setReservasCount] = useState(0);
+  const [salasCount, setSalasCount] = useState(0);
+  const [articulosCount, setArticulosCount] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 🔹 Llamadas simultáneas a los endpoints del backend
+        const [reservasRes, salasRes, articulosRes] = await Promise.all([
+          api.get('/reservas'),
+          api.get('/salas'),
+          api.get('/articulos'),
+        ]);
+
+        // ✅ Los controladores ya filtran según el rol, así que no hay que hacer lógica extra
+        setReservasCount(reservasRes.data.length);
+        setSalasCount(salasRes.data.length);
+        setArticulosCount(articulosRes.data.length);
+      } catch (error) {
+        console.error('❌ Error al obtener datos del dashboard:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const stats = [
-    { title: 'Mis Reservas', value: '5', icon: <EventNote fontSize="large" />, color: '#1976d2' },
-    { title: 'Salas Disponibles', value: '8', icon: <MeetingRoom fontSize="large" />, color: '#2e7d32' },
-    { title: 'Artículos', value: '12', icon: <Inventory fontSize="large" />, color: '#ed6c02' },
+    { title: 'Mis Reservas', value: reservasCount, icon: <EventNote fontSize="large" />, color: '#1976d2' },
+    { title: 'Salas Disponibles', value: salasCount, icon: <MeetingRoom fontSize="large" />, color: '#2e7d32' },
+    { title: 'Artículos', value: articulosCount, icon: <Inventory fontSize="large" />, color: '#ed6c02' },
   ];
 
   if (isAdmin()) {

@@ -2,6 +2,7 @@ import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { LogoutOutlined, DashboardOutlined } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
 
 const DRAWER_WIDTH = 240;
 
@@ -25,9 +26,22 @@ export const Navbar = () => {
     >
       <Toolbar>
         <DashboardOutlined sx={{ mr: 2 }} />
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Sistema de Reservas
-        </Typography>
+        <Typography
+          variant="h6"
+          component={Link}
+          to="/dashboard"
+          sx={{
+          flexGrow: 1,
+          textDecoration: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
+          '&:hover': {
+          color: '#1976d2'
+        }
+        }}
+  >
+    Sistema de Reservas
+  </Typography>
 
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <Typography variant="body2">
