@@ -19,7 +19,9 @@ import {
   Alert,
   Chip,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
@@ -31,6 +33,7 @@ export const ArticulosPage = () => {
   const [editingArticulo, setEditingArticulo] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [filtro, setFiltro] = useState('todos'); // 'todos', 'disponibles', 'no_disponibles'
   const { isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -121,21 +124,50 @@ export const ArticulosPage = () => {
     }
   };
 
+  // ✅ Filtrar artículos según el filtro seleccionado
+  const articulosFiltrados = articulos.filter(articulo => {
+    if (filtro === 'disponibles') return articulo.disponible;
+    if (filtro === 'no_disponibles') return !articulo.disponible;
+    return true; // 'todos'
+  });
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <Typography variant="h4" fontWeight="bold">
           Artículos
         </Typography>
-        {isAdmin() && (
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => handleOpenDialog()}
-          >
-            Nuevo Artículo
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* ✅ Filtro de disponibilidad (solo para Admin) */}
+          {isAdmin() && (
+            <ToggleButtonGroup
+              value={filtro}
+              exclusive
+              onChange={(e, newFiltro) => newFiltro && setFiltro(newFiltro)}
+              size="small"
+            >
+              <ToggleButton value="todos">
+                Todos ({articulos.length})
+              </ToggleButton>
+              <ToggleButton value="disponibles">
+                Disponibles ({articulos.filter(a => a.disponible).length})
+              </ToggleButton>
+              <ToggleButton value="no_disponibles">
+                No Disponibles ({articulos.filter(a => !a.disponible).length})
+              </ToggleButton>
+            </ToggleButtonGroup>
+          )}
+
+          {isAdmin() && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleOpenDialog()}
+            >
+              Nuevo Artículo
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {error && (
@@ -148,23 +180,22 @@ export const ArticulosPage = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>ID</strong></TableCell>
+            
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>Estado</strong></TableCell>
               {isAdmin() && <TableCell align="center"><strong>Acciones</strong></TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            {articulos.length === 0 ? (
+            {articulosFiltrados.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} align="center">
-                  No hay artículos registrados
+                  No hay artículos {filtro === 'todos' ? 'registrados' : filtro === 'disponibles' ? 'disponibles' : 'no disponibles'}
                 </TableCell>
               </TableRow>
             ) : (
-              articulos.map((articulo) => (
+              articulosFiltrados.map((articulo) => (
                 <TableRow key={articulo.id} hover>
-                  <TableCell>{articulo.id}</TableCell>
                   <TableCell>{articulo.nombre}</TableCell>
                   <TableCell>
                     <Chip
@@ -222,8 +253,14 @@ export const ArticulosPage = () => {
                   onChange={handleChange}
                 />
               }
-              label="Disponible"
+              label="Disponible para reservas"
             />
+
+            {!formData.disponible && (
+              <Alert severity="warning">
+                Este artículo NO estará disponible para nuevas reservas
+              </Alert>
+            )}
           </Box>
         </DialogContent>
         <DialogActions>

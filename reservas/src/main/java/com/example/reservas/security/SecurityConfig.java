@@ -18,7 +18,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableMethodSecurity  // 👈 CRÍTICO: Habilita @PreAuthorize
+@EnableMethodSecurity(prePostEnabled = true)  // 👈 CRÍTICO: Habilita @PreAuthorize
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
@@ -27,35 +27,44 @@ public class SecurityConfig {
         this.jwtFilter = jwtFilter;
     }
 
-    // 🔐 AGREGAR ESTE BEAN
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     // 🔹 Configuración CORS
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+   @Bean
+   public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+         // configuration.setAllowedOriginPatterns(List.of("*"));
+          configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",
+             "http://localhost:5174",
+             "http://localhost:3000",
+             "http://127.0.0.1:5173",
+             "http://127.0.0.1:5174",
+             "http://127.0.0.1:8000"  // Para la API Python
+         ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 
-    @Bean
+     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 👈 ACTIVAR CORS
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/api/auth/**", "/h2-console/**", "/reservas/datos/**", "/").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers("/auth/**", "/api/auth/**", "/h2-console/**", "/").permitAll()
+                .requestMatchers("/reservas/datos").permitAll()  // Para la API Python
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

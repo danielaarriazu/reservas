@@ -9,7 +9,8 @@ import {
   Card,
   CardContent,
   Divider,
-  Chip
+  Chip,
+  Button
 } from '@mui/material';
 import {
   BarChart,
@@ -26,8 +27,8 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { TrendingUp, Warning, CheckCircle } from '@mui/icons-material';
-import { predictionService } from '../services/predictionService';
+import { TrendingUp, Warning, CheckCircle, Refresh } from '@mui/icons-material';
+import axios from 'axios';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -36,6 +37,7 @@ export const PrediccionesPage = () => {
   const [prediccionArticulos, setPrediccionArticulos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [debugInfo, setDebugInfo] = useState(''); // Para mostrar info de debug
 
   useEffect(() => {
     loadPredicciones();
@@ -44,18 +46,68 @@ export const PrediccionesPage = () => {
   const loadPredicciones = async () => {
     setLoading(true);
     setError('');
+    setDebugInfo('');
     
     try {
+      console.log('🔍 Intentando conectar con API Python...');
+      
+      // URLs de las APIs
+      const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
+      const urlSalas = `${PYTHON_API_URL}/prediccion/salas`;
+      const urlArticulos = `${PYTHON_API_URL}/prediccion/articulos`;
+
+      console.log('📡 URL Salas:', urlSalas);
+      console.log('📡 URL Artículos:', urlArticulos);
+
+      // Intentar cargar ambas predicciones
       const [salasRes, articulosRes] = await Promise.all([
-        predictionService.getPrediccionSalas(),
-        predictionService.getPrediccionArticulos()
+        axios.get(urlSalas, { timeout: 10000 }),
+        axios.get(urlArticulos, { timeout: 10000 })
       ]);
+
+      console.log('✅ Respuesta Salas:', salasRes.data);
+      console.log('✅ Respuesta Artículos:', articulosRes.data);
+
+      // Validar que las respuestas tengan datos
+      if (!salasRes.data || salasRes.data.length === 0) {
+        throw new Error('La API de predicción de salas no devolvió datos');
+      }
+
+      if (!articulosRes.data || articulosRes.data.length === 0) {
+        throw new Error('La API de predicción de artículos no devolvió datos');
+      }
 
       setPrediccionSalas(salasRes.data);
       setPrediccionArticulos(articulosRes.data);
+      setDebugInfo(`✅ Datos cargados: ${salasRes.data.length} salas, ${articulosRes.data.length} artículos`);
+
     } catch (error) {
-      console.error('Error al cargar predicciones:', error);
-      setError('Error al conectar con la API de predicciones. Verifica que esté corriendo en el puerto 8000.');
+      console.error('❌ Error completo:', error);
+      
+      let errorMsg = 'Error desconocido';
+      let debugMsg = '';
+
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        errorMsg = 'No se puede conectar con la API de Python en el puerto 8000';
+        debugMsg = `
+          La API de Python no está respondiendo. Verifica:
+          1. ¿Está corriendo? Ejecuta: cd prediccion_api && uvicorn main:app --reload
+          2. ¿Está en el puerto 8000? Revisa la terminal
+          3. URL intentada: ${import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000'}
+        `;
+      } else if (error.response) {
+        errorMsg = `Error HTTP ${error.response.status}: ${error.response.statusText}`;
+        debugMsg = `Respuesta del servidor: ${JSON.stringify(error.response.data)}`;
+      } else if (error.request) {
+        errorMsg = 'La solicitud fue enviada pero no hubo respuesta del servidor';
+        debugMsg = 'Verifica que la API Python esté corriendo y accesible';
+      } else {
+        errorMsg = error.message;
+        debugMsg = error.stack;
+      }
+
+      setError(errorMsg);
+      setDebugInfo(debugMsg);
     } finally {
       setLoading(false);
     }
@@ -63,8 +115,12 @@ export const PrediccionesPage = () => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '400px', gap: 2 }}>
         <CircularProgress size={60} />
+        <Typography variant="h6">Cargando predicciones...</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Conectando con API Python en puerto 8000
+        </Typography>
       </Box>
     );
   }
@@ -73,31 +129,127 @@ export const PrediccionesPage = () => {
     return (
       <Box>
         <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Predicciones de Demanda
+          📊 Predicciones de Demanda
         </Typography>
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
+        
+        <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
+          <strong>Error de Conexión:</strong> {error}
         </Alert>
-        <Alert severity="info" sx={{ mt: 2 }}>
-          <strong>Para activar las predicciones:</strong>
-          <ol style={{ marginTop: '10px', marginBottom: 0 }}>
-            <li>Asegúrate que el backend Spring Boot esté corriendo (puerto 8080)</li>
-            <li>Ve a la carpeta <code>prediccion_api</code></li>
-            <li>Ejecuta: <code>uvicorn main:app --reload</code></li>
-          </ol>
+
+        {debugInfo && (
+          <Alert severity="info" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
+            <strong>Información de depuración:</strong>
+            {debugInfo}
+          </Alert>
+        )}
+
+        <Paper sx={{ p: 3, mb: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            🔧 Pasos para activar las predicciones:
+          </Typography>
+          <Box component="ol" sx={{ pl: 2 }}>
+            <li>
+              <Typography variant="body1" gutterBottom>
+                <strong>Asegúrate que el backend Spring Boot esté corriendo</strong> (puerto 8080)
+              </Typography>
+              <code style={{ background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px' }}>
+                cd reservas && ./mvnw spring-boot:run
+              </code>
+            </li>
+            <li>
+              <Typography variant="body1" gutterBottom sx={{ mt: 2 }}>
+                <strong>Ve a la carpeta de la API Python</strong>
+              </Typography>
+              <code style={{ background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px' }}>
+                cd prediccion_api
+              </code>
+            </li>
+            <li>
+              <Typography variant="body1" gutterBottom sx={{ mt: 2 }}>
+                <strong>Instala las dependencias (si no lo hiciste)</strong>
+              </Typography>
+              <code style={{ background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px' }}>
+                pip install -r requirements.txt
+              </code>
+            </li>
+            <li>
+              <Typography variant="body1" gutterBottom sx={{ mt: 2 }}>
+                <strong>Ejecuta la API Python</strong>
+              </Typography>
+              <code style={{ background: '#f5f5f5', padding: '4px 8px', borderRadius: '4px' }}>
+                uvicorn main:app --reload --host 0.0.0.0 --port 8000
+              </code>
+            </li>
+            <li>
+              <Typography variant="body1" gutterBottom sx={{ mt: 2 }}>
+                <strong>Verifica que la API responde</strong>
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Abre en tu navegador: <a href="http://localhost:8000/docs" target="_blank" rel="noopener">http://localhost:8000/docs</a>
+              </Typography>
+            </li>
+          </Box>
+        </Paper>
+
+        <Button
+          variant="contained"
+          startIcon={<Refresh />}
+          onClick={loadPredicciones}
+          size="large"
+        >
+          Reintentar Conexión
+        </Button>
+      </Box>
+    );
+  }
+
+  // Si no hay datos
+  if (prediccionSalas.length === 0 && prediccionArticulos.length === 0) {
+    return (
+      <Box>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          📊 Predicciones de Demanda
+        </Typography>
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          No hay datos suficientes para generar predicciones. 
+          Asegúrate de tener reservas registradas en el sistema.
         </Alert>
+        <Button
+          variant="contained"
+          startIcon={<Refresh />}
+          onClick={loadPredicciones}
+          sx={{ mt: 2 }}
+        >
+          Recargar
+        </Button>
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        📊 Predicciones de Demanda
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" fontWeight="bold">
+          📊 Predicciones de Demanda
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={loadPredicciones}
+        >
+          Actualizar
+        </Button>
+      </Box>
+      
       <Typography variant="body2" color="text.secondary" gutterBottom>
         Análisis predictivo basado en datos históricos de reservas
       </Typography>
+
+      {debugInfo && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {debugInfo}
+        </Alert>
+      )}
 
       <Divider sx={{ my: 3 }} />
 
@@ -155,7 +307,7 @@ export const PrediccionesPage = () => {
             </Grid>
           </Grid>
 
-          {/* Gráfico de Barras - Comparación Actual vs Predicción */}
+          {/* Gráfico de Barras */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Reservas Actuales vs Predicción
@@ -178,7 +330,7 @@ export const PrediccionesPage = () => {
             </ResponsiveContainer>
           </Grid>
 
-          {/* Gráfico de Líneas - Tendencia */}
+          {/* Gráfico de Líneas */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Tendencia de Demanda
@@ -214,7 +366,7 @@ export const PrediccionesPage = () => {
             </ResponsiveContainer>
           </Grid>
 
-          {/* Gráfico Circular - Distribución de uso */}
+          {/* Gráfico Circular */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Distribución de Reservas Actuales
@@ -242,7 +394,7 @@ export const PrediccionesPage = () => {
             </ResponsiveContainer>
           </Grid>
 
-          {/* Gráfico de Duración Promedio */}
+          {/* Duración Promedio */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Duración Promedio por Sala (horas)
@@ -265,7 +417,7 @@ export const PrediccionesPage = () => {
         </Grid>
       </Paper>
 
-      {/* SECCIÓN 2: Predicción de Mantenimiento de Artículos */}
+      {/* SECCIÓN 2: Predicción de Artículos */}
       <Paper sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <Warning sx={{ mr: 1, color: '#ed6c02' }} />
@@ -275,7 +427,6 @@ export const PrediccionesPage = () => {
         </Box>
 
         <Grid container spacing={3}>
-          {/* Tabla de artículos con riesgo */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom>
               Estado de Artículos por Uso
@@ -338,7 +489,7 @@ export const PrediccionesPage = () => {
             </Grid>
           </Grid>
 
-          {/* Gráfico de barras - Uso de artículos */}
+          {/* Gráfico de Uso */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Frecuencia de Uso
@@ -364,7 +515,7 @@ export const PrediccionesPage = () => {
             </ResponsiveContainer>
           </Grid>
 
-          {/* Gráfico circular - Distribución de riesgo */}
+          {/* Distribución de Riesgo */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Distribución de Riesgo de Mantenimiento

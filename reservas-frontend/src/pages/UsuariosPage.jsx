@@ -61,7 +61,6 @@ export const UsuariosPage = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell><strong>ID</strong></TableCell>
               <TableCell><strong>Nombre</strong></TableCell>
               <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>Rol</strong></TableCell>
@@ -78,7 +77,6 @@ export const UsuariosPage = () => {
             ) : (
               usuarios.map((usuario) => (
                 <TableRow key={usuario.id} hover>
-                  <TableCell>{usuario.id}</TableCell>
                   <TableCell>{usuario.nombre}</TableCell>
                   <TableCell>{usuario.email}</TableCell>
                   <TableCell>
