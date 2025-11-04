@@ -183,7 +183,7 @@ public class ReservaController {
         Reserva reserva = reservaService.obtenerPorId(id);
         
         if (reserva == null) {
-            System.out.println("❌ Reserva no encontrada: " + id);
+            System.out.println("Reserva no encontrada: " + id);
             return ResponseEntity.notFound().build();
         }
 
@@ -206,9 +206,9 @@ public class ReservaController {
         }
 
         // 🔥 Verificar disponibilidad
-        if (!reservaService.estaDisponible(reservaActualizada)) {
-            return ResponseEntity.badRequest().body("La sala no está disponible en ese horario.");
-        }
+        if (!reservaService.estaDisponibleParaModificar(reservaActualizada, id)) {
+        return ResponseEntity.badRequest().body("La sala no está disponible en ese horario.");
+    }
 
         try {
             Reserva modificada = reservaService.modificar(id, reservaActualizada, persona, esAdmin);

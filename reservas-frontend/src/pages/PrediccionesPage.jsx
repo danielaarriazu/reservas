@@ -47,10 +47,10 @@ export const PrediccionesPage = () => {
     setLoading(true);
     setError('');
     setDebugInfo('');
-    
+
     try {
       console.log('🔍 Intentando conectar con API Python...');
-      
+
       // URLs de las APIs
       const PYTHON_API_URL = import.meta.env.VITE_PYTHON_API_URL || 'http://localhost:8000';
       const urlSalas = `${PYTHON_API_URL}/prediccion/salas`;
@@ -83,7 +83,7 @@ export const PrediccionesPage = () => {
 
     } catch (error) {
       console.error('❌ Error completo:', error);
-      
+
       let errorMsg = 'Error desconocido';
       let debugMsg = '';
 
@@ -131,7 +131,7 @@ export const PrediccionesPage = () => {
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           📊 Predicciones de Demanda
         </Typography>
-        
+
         <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
           <strong>Error de Conexión:</strong> {error}
         </Alert>
@@ -211,7 +211,7 @@ export const PrediccionesPage = () => {
           📊 Predicciones de Demanda
         </Typography>
         <Alert severity="warning" sx={{ mt: 2 }}>
-          No hay datos suficientes para generar predicciones. 
+          No hay datos suficientes para generar predicciones.
           Asegúrate de tener reservas registradas en el sistema.
         </Alert>
         <Button
@@ -240,7 +240,7 @@ export const PrediccionesPage = () => {
           Actualizar
         </Button>
       </Box>
-      
+
       <Typography variant="body2" color="text.secondary" gutterBottom>
         Análisis predictivo basado en datos históricos de reservas
       </Typography>
@@ -266,9 +266,9 @@ export const PrediccionesPage = () => {
           {/* Tarjetas de resumen */}
           <Grid item xs={12}>
             <Grid container spacing={2}>
-              {prediccionSalas.slice(0, 4).map((sala, index) => (
+              {prediccionSalas.slice(0, 8).map((sala, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Card sx={{ 
+                  <Card sx={{
                     background: `linear-gradient(135deg, ${COLORS[index % COLORS.length]}20 0%, ${COLORS[index % COLORS.length]}40 100%)`,
                     border: `2px solid ${COLORS[index % COLORS.length]}`
                   }}>
@@ -294,7 +294,7 @@ export const PrediccionesPage = () => {
                       </Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                         <Typography variant="caption">Variación:</Typography>
-                        <Chip 
+                        <Chip
                           label={`${sala['variacion_%'] > 0 ? '+' : ''}${sala['variacion_%']?.toFixed(1)}%`}
                           size="small"
                           color={sala['variacion_%'] > 0 ? 'success' : 'error'}
@@ -312,57 +312,31 @@ export const PrediccionesPage = () => {
             <Typography variant="h6" gutterBottom>
               Reservas Actuales vs Predicción
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={prediccionSalas}>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={prediccionSalas}
+                margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="salaNombre" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="cantidad_reservas" fill="#1976d2" name="Actual" />
-                <Bar dataKey="prediccion_futura" fill="#82ca9d" name="Predicción" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Grid>
-
-          {/* Gráfico de Líneas */}
-          <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>
-              Tendencia de Demanda
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={prediccionSalas}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
+                <XAxis
                   dataKey="salaNombre"
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
+                  interval={0}
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="cantidad_reservas" 
-                  stroke="#1976d2" 
-                  strokeWidth={2}
-                  name="Actual"
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="prediccion_futura" 
-                  stroke="#82ca9d" 
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Predicción"
+                <Tooltip
+                  contentStyle={{ fontSize: '13px' }}
                 />
-              </LineChart>
+                <Legend
+                  wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                />
+                <Bar dataKey="cantidad_reservas" fill="#1976d2" name="Actual" />
+                <Bar dataKey="prediccion_futura" fill="#82ca9d" name="Predicción" />
+              </BarChart>
             </ResponsiveContainer>
           </Grid>
 
@@ -371,17 +345,15 @@ export const PrediccionesPage = () => {
             <Typography variant="h6" gutterBottom>
               Distribución de Reservas Actuales
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={400}>
               <PieChart>
                 <Pie
                   data={prediccionSalas}
-                  cx="50%"
-                  cy="50%"
+                  cx="120%"
+                  cy="25%"
                   labelLine={false}
-                  label={({ salaNombre, cantidad_reservas }) => 
-                    `${salaNombre}: ${cantidad_reservas}`
-                  }
-                  outerRadius={80}
+                  label={false}
+                  outerRadius={100}
                   fill="#8884d8"
                   dataKey="cantidad_reservas"
                 >
@@ -389,28 +361,69 @@ export const PrediccionesPage = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{ fontSize: '13px', backgroundColor: 'white', border: '1px solid #ccc' }}
+                  formatter={(value, name, props) => {
+                    const total = prediccionSalas.reduce((sum, s) => sum + s.cantidad_reservas, 0);
+                    const percent = ((value / total) * 100).toFixed(1);
+                    return [`${value} reservas (${percent}%)`, props.payload.salaNombre];
+                  }}
+                />
+                <Legend
+                  wrapperStyle={{
+                    fontSize: '11px',
+                    bottom: 100,
+                    right: 0,
+                    padding: '10px'
+                  }}
+                  layout="vertical"
+                  verticalAlign="bottom"
+                  align="right"
+                  iconSize={10}
+                  formatter={(value, entry) => {
+                    const total = prediccionSalas.reduce((sum, s) => sum + s.cantidad_reservas, 0);
+                    const percent = ((entry.payload.cantidad_reservas / total) * 100).toFixed(0);
+                    return `${entry.payload.salaNombre}: ${entry.payload.cantidad_reservas} (${percent}%)`;
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </Grid>
+
 
           {/* Duración Promedio */}
           <Grid item xs={12} md={6}>
             <Typography variant="h6" gutterBottom>
               Duración Promedio por Sala (horas)
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={prediccionSalas}>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={prediccionSalas}
+                margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
+                <XAxis
                   dataKey="salaNombre"
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
+                  interval={0}
+                  tick={{ fontSize: 11 }}
                 />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="duracion_promedio" fill="#FF8042" name="Duración Promedio (hrs)" />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Horas', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: '13px' }}
+                  formatter={(value) => `${value.toFixed(2)} hrs`}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }}
+                />
+                <Bar
+                  dataKey="duracion_promedio"
+                  fill="#FF8042"
+                  name="Duración Promedio (hrs)"
+                />
               </BarChart>
             </ResponsiveContainer>
           </Grid>
@@ -434,8 +447,8 @@ export const PrediccionesPage = () => {
             <Grid container spacing={2}>
               {prediccionArticulos.map((articulo, index) => (
                 <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Card 
-                    sx={{ 
+                  <Card
+                    sx={{
                       borderLeft: `4px solid ${articulo.riesgo_mantenimiento === 'ALTO' ? '#f44336' : '#4caf50'}`,
                       position: 'relative'
                     }}
@@ -451,9 +464,9 @@ export const PrediccionesPage = () => {
                           <CheckCircle color="success" />
                         )}
                       </Box>
-                      
+
                       <Divider sx={{ my: 1.5 }} />
-                      
+
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2" color="text.secondary">
                           Veces usado:
@@ -462,7 +475,7 @@ export const PrediccionesPage = () => {
                           {articulo.veces_usado}
                         </Typography>
                       </Box>
-                      
+
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                         <Typography variant="body2" color="text.secondary">
                           Duración promedio:
@@ -471,7 +484,7 @@ export const PrediccionesPage = () => {
                           {articulo.duracion_promedio?.toFixed(1)} hrs
                         </Typography>
                       </Box>
-                      
+
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
                         <Typography variant="body2" color="text.secondary">
                           Estado:
@@ -491,62 +504,121 @@ export const PrediccionesPage = () => {
 
           {/* Gráfico de Uso */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>
-              Frecuencia de Uso
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={prediccionArticulos}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="articuloNombre"
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar 
-                  dataKey="veces_usado" 
-                  fill="#ed6c02" 
-                  name="Veces Usado"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <Paper elevation={2} sx={{ p: 2, height: '100%', width:"200%" }}>
+              <Typography variant="h6" gutterBottom>
+                Frecuencia de Uso
+              </Typography>
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart
+                  data={prediccionArticulos}
+                  margin={{ top: 20, right: 20, left: 20, bottom: 100 }}
+                  barCategoryGap="20%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="articuloNombre"
+                    angle={-45}
+                    textAnchor="end"
+                    height={90}
+                    interval={0}
+                    tick={{ fontSize: 10, fontWeight: 500 }}
+                    tickMargin={5}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    label={{
+                      value: 'Cantidad de Usos',
+                      angle: -90,
+                      position: 'left',
+                      style: { fontSize: 12, fontWeight: 'bold' }
+                    }}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: '12px',
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      padding: '8px'
+                    }}
+                    formatter={(value) => [`${value} usos`, 'Frecuencia']}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                  />
+                  <Bar
+                    dataKey="veces_usado"
+                    fill="#ed6c02"
+                    name="Veces Usado"
+                    radius={[6, 6, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </Paper>
           </Grid>
 
           {/* Distribución de Riesgo */}
           <Grid item xs={12} md={6}>
-            <Typography variant="h6" gutterBottom>
-              Distribución de Riesgo de Mantenimiento
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    { 
-                      name: 'Alto Riesgo', 
-                      value: prediccionArticulos.filter(a => a.riesgo_mantenimiento === 'ALTO').length 
-                    },
-                    { 
-                      name: 'Normal', 
-                      value: prediccionArticulos.filter(a => a.riesgo_mantenimiento === 'NORMAL').length 
-                    }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  <Cell fill="#f44336" />
-                  <Cell fill="#4caf50" />
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <Paper elevation={2} sx={{ p: 2, height: '100%' , ml:35 }}>
+              <Typography variant="h6" gutterBottom>
+                Distribución de Riesgo de Mantenimiento
+              </Typography>
+              <ResponsiveContainer width="100%" height={350}>
+                <PieChart>
+                  <Pie
+                    data={[
+                      {
+                        name: 'Alto Riesgo',
+                        value: prediccionArticulos.filter(a => a.riesgo_mantenimiento === 'ALTO').length
+                      },
+                      {
+                        name: 'Normal',
+                        value: prediccionArticulos.filter(a => a.riesgo_mantenimiento === 'NORMAL').length
+                      }
+                    ]}
+                    cx="40%"
+                    cy="50%"
+                    labelLine={false}
+                    label={false}
+                    outerRadius={90}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    <Cell fill="#f44336" />
+                    <Cell fill="#4caf50" />
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: '12px',
+                      backgroundColor: 'white',
+                      border: '1px solid #ccc',
+                      borderRadius: '4px',
+                      padding: '8px'
+                    }}
+                    formatter={(value, name) => {
+                      const total = prediccionArticulos.length;
+                      const percent = ((value / total) * 100).toFixed(1);
+                      return [`${value} artículos (${percent}%)`, name];
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '11px'
+                    }}
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    iconSize={10}
+                    formatter={(value, entry) => {
+                      const total = prediccionArticulos.length;
+                      const percent = ((entry.payload.value / total) * 100).toFixed(0);
+                      return `${entry.payload.name}: ${entry.payload.value} (${percent}%)`;
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </Paper>
           </Grid>
         </Grid>
       </Paper>
