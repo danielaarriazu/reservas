@@ -22,11 +22,19 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("end") LocalDateTime end
     );
     List<Reserva> findByPersonaEmail(String email);
-    // agregado gpt
+    
     List<Reserva> findByPersona(Persona persona);
    List<Reserva> findBySalaAndFechaHoraInicioLessThanEqualAndFechaHoraFinGreaterThanEqual(
             Sala sala,
             LocalDateTime fechaHoraFin,
             LocalDateTime fechaHoraInicio
+    );
+
+     @Query("SELECT r FROM Reserva r WHERE r.sala.id = :salaId " +
+           "AND ((r.fechaHoraInicio < :fin AND r.fechaHoraFin > :inicio))")
+    List<Reserva> findBySalaAndFechaHoraSolapadas(
+        @Param("salaId") Long salaId,
+        @Param("inicio") LocalDateTime inicio,
+        @Param("fin") LocalDateTime fin
     );
 }

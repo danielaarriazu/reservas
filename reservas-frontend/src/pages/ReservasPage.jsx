@@ -18,7 +18,8 @@ import {
   TextField,
   MenuItem,
   Alert,
-  Chip
+  Chip,
+  Snackbar
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { reservaService } from '../services/reservaService';
@@ -32,7 +33,8 @@ export const ReservasPage = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingReserva, setEditingReserva] = useState(null);
-  const [error, setError] = useState('');
+  const [dialogError, setDialogError] = useState(''); 
+  const [snackbarError, setSnackbarError] = useState('');
   const [loading, setLoading] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState('activas'); // 'todas', 'activas', 'finalizadas'
   const { isAdmin } = useAuth();
@@ -68,7 +70,7 @@ export const ReservasPage = () => {
         setUsuarios(usuariosRes.data);
       }
     } catch (error) {
-      setError('Error al cargar los datos');
+      setSnackbarError('Error al cargar los datos');
       console.error(error);
     }
   };
@@ -94,12 +96,13 @@ export const ReservasPage = () => {
       });
     }
     setOpenDialog(true);
-    setError('');
+    setDialogError('');
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingReserva(null);
+    setDialogError(''); 
   };
 
   // 🔹 Manejo de cambio en fecha de inicio (auto-completar fecha fin)
@@ -157,20 +160,20 @@ export const ReservasPage = () => {
 
     // Validar que fecha inicio sea menor que fecha fin
     if (inicio >= fin) {
-      setError('La fecha de inicio debe ser anterior a la fecha de finalización');
+      setDialogError('La fecha de inicio debe ser anterior a la fecha de finalización');
       return false;
     }
 
     // Validar que no se creen reservas en el pasado (solo para nuevas reservas)
     if (!editingReserva && inicio < ahora) {
-      setError('No se pueden crear reservas con fechas pasadas');
+      setDialogError('No se pueden crear reservas con fechas pasadas');
       return false;
     }
 
     // Validar duración mínima (30 minutos)
     const diffMinutos = (fin - inicio) / (1000 * 60);
     if (diffMinutos < 30) {
-      setError('La reserva debe durar al menos 30 minutos');
+      setDialogError('La reserva debe durar al menos 30 minutos');
       return false;
     }
 
@@ -178,7 +181,7 @@ export const ReservasPage = () => {
   };
 
   const handleSubmit = async () => {
-    setError('');
+    setDialogError('');
 
     // 🔹 Validar fechas
     if (!validateDates()) {
@@ -209,7 +212,10 @@ export const ReservasPage = () => {
       await loadData();
       handleCloseDialog();
     } catch (error) {
-      setError(error.response?.data || 'Error al guardar la reserva');
+      const errorMessage = error.response?.data?.message || 
+                        error.response?.data || 
+                        'Error al guardar la reserva';
+    setDialogError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -221,7 +227,7 @@ export const ReservasPage = () => {
         await reservaService.delete(id);
         await loadData();
       } catch (error) {
-        setError('Error al eliminar la reserva');
+        setSnackbarError('Error al eliminar la reserva');
       }
     }
   };
@@ -282,11 +288,16 @@ export const ReservasPage = () => {
         </Box>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
+      <Snackbar 
+        open={!!snackbarError} 
+        autoHideDuration={6000} 
+        onClose={() => setSnackbarError('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setSnackbarError('')}>
+          {snackbarError}
         </Alert>
-      )}
+      </Snackbar>
 
       <TableContainer component={Paper}>
         <Table>
@@ -357,6 +368,15 @@ export const ReservasPage = () => {
           {editingReserva ? 'Editar Reserva' : 'Nueva Reserva'}
         </DialogTitle>
         <DialogContent>
+          {dialogError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDialogError('')}>
+              {dialogError}
+            </Alert>
+          )}
+
+  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+    {/* ... resto del formulario sin cambios ... */}
+  </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             {/* Campo Usuario (solo para Admin) */}
             {isAdmin() && (

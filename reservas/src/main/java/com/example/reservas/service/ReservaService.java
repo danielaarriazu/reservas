@@ -1,6 +1,7 @@
 package com.example.reservas.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -114,4 +115,37 @@ public class ReservaService {
         return reservasOcupadas.stream()
                 .allMatch(r -> r.getId().equals(reserva.getId()));
     }
+
+    // 🔹 Verificar disponibilidad excluyendo una reserva específica (para edición)
+    public boolean estaDisponibleParaModificar(Reserva reserva, Long idReservaActual) {
+    // Validar que la sala esté disponible
+    if (reserva.getSala() == null || !reserva.getSala().isDisponible()) {
+        return false;
+    }
+
+    // Validar que el artículo esté disponible
+    if (reserva.getArticulo() == null || !reserva.getArticulo().isDisponible()) {
+        return false;
+    }
+
+    // Buscar solapamientos EXCLUYENDO la reserva que se está editando
+    List<Reserva> reservasSuperpuestas = reservaRepository.findBySalaAndFechaHoraSolapadas(
+        reserva.getSala().getId(),
+        reserva.getFechaHoraInicio(),
+        reserva.getFechaHoraFin()
+    );
+
+    // Filtrar para excluir la reserva actual
+    reservasSuperpuestas = reservasSuperpuestas.stream()
+        .filter(r -> !r.getId().equals(idReservaActual))
+        .collect(Collectors.toList());
+
+    System.out.println("🔍 Verificando disponibilidad para modificar reserva " + idReservaActual);
+    System.out.println("   Sala: " + reserva.getSala().getNombre());
+    System.out.println("   Inicio: " + reserva.getFechaHoraInicio());
+    System.out.println("   Fin: " + reserva.getFechaHoraFin());
+    System.out.println("   Solapamientos encontrados (sin contar la actual): " + reservasSuperpuestas.size());
+
+    return reservasSuperpuestas.isEmpty();
+}
 }
